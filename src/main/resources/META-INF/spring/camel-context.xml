@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+     Copyright 2005-2015 Red Hat, Inc.
+
+     Red Hat licenses this file to you under the Apache License, version
+     2.0 (the "License"); you may not use this file except in compliance
+     with the License.  You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+     implied.  See the License for the specific language governing
+     permissions and limitations under the License.
+
+-->
+<!-- Configures the Camel Context-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <camelContext xmlns="http://camel.apache.org/schema/spring">
+
+    <route id="kubewatch">
+      <from uri="kubernetes:https://127.0.0.1:8443?category=services&amp;namespaceName=sample&amp;trustCerts=true&amp;oauthToken=7OSyiRmph11Fi_rSIVuUyecvlUPDCvFjGtM3D7DTKq8"/>
+      <log message="Logged! -> ${body}"/>
+      <log message="Service header -> ${header.CamelKubernetesServiceName}"/>
+    </route>
+
+    <route>
+      <from uri="timer://foo?fixedRate=true&amp;period=5s"/>
+      <log message="invoking kube"/>
+      
+      <setHeader headerName="CamelKubernetesServiceLabels">
+        <groovy>['app':'sample']</groovy>
+      </setHeader>
+
+      <log message="header is -> ${header.CamelKubernetesServiceLabels}"/>
+      <setHeader headerName="CamelKubernetesNamespaceName">
+        <simple>"sample"</simple>
+      </setHeader>
+      <setBody>
+        <simple>"hello"</simple>
+      </setBody>
+      <to uri="kubernetes://https://127.0.0.1:8443?oauthToken=7OSyiRmph11Fi_rSIVuUyecvlUPDCvFjGtM3D7DTKq8&amp;category=services&amp;namespaceName=sample&amp;trustCerts=true&amp;operation=listServicesByLabels"/>
+      <log message="Payload -> ${body}"/>
+    </route>
+
+  </camelContext>
+
+</beans>
